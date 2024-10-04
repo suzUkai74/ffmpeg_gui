@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - runs-on: macos-latest
-	    flet-name: ${{ vars.APP_NAME }}_macos
+            flet-name: ${{ vars.APP_NAME }}_macos
             binary-name: ${{ vars.APP_NAME }}_maco.tar.gz
     runs-on: ${{ matrix.runs-on }}
     permissions:
