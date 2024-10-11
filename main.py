@@ -3,6 +3,7 @@ import subprocess
 
 def main(page: ft.Page):
     page.title = "ffmpeg GUI"
+    page.scroll = ft.ScrollMode.AUTO
     PREVIEW_INDEX = 8
 
     def pick_files_result(e: ft.FilePickerResultEvent):
@@ -49,6 +50,9 @@ def main(page: ft.Page):
         )
         page.update()
 
+    def escape_for_zsh(str):
+        return str.replace(" ", r"\ ")
+
     def validate():
         errors = []
         if not selected_file.value:
@@ -84,7 +88,7 @@ def main(page: ft.Page):
                 "ffmpeg",
                 "-y",
                 "-i",
-                selected_file.value,
+                escape_for_zsh(selected_file.value),
                 "-crf",
                 str(crf_value_text.value),
             ]
@@ -94,14 +98,13 @@ def main(page: ft.Page):
                     f"scale={scale_width_input.value}:{scale_height_input.value}",
                 ]
             
-            video_path = f"{selected_directry.value}/{output_file_name_input.value}.mp4"
-            cmds.append(video_path)
-            cp = subprocess.run(cmds, capture_output=True)
+            cmds.append(f"{escape_for_zsh(selected_directry.value)}/{output_file_name_input.value}.mp4")
+            cp = subprocess.run(' '.join(cmds), shell=True, executable='/bin/zsh', capture_output=True)
             if cp.returncode == 0:
                 result_text.value = "動画が作成されました。"
-                load_video(video_path)
+                load_video(f"{selected_directry.value}/{output_file_name_input.value}.mp4")
             else:
-                result_text.value = f"returncode:{cp.returncode}\nエラーが発生しました。"
+                result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode()}"
 
         exec_button.disabled = False
         page.update()
