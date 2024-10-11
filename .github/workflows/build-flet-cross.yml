@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.11.8' 
       - run: pip install -r requirements.txt
-      - run: flet pack main.py --name ${{ matrix.flet-name }}
+      - run: flet pack main.py --name ${{ matrix.flet-name }} --icon assets/icon.icns --product-name ${{ matrix.flet-name }}
       - name: "Linux/MacOS compress"
         if: runner.os != 'Windows'
         run: tar zcvf ${{matrix.binary-name}} dist
