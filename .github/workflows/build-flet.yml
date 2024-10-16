@@ -3,6 +3,8 @@ on:
   push:
     tags:
       - "v*"
+env:
+  VERSION: 1.1.0
 
 jobs:
   create-release:
@@ -21,8 +23,8 @@ jobs:
       matrix:
         include:
           - runs-on: macos-latest
-            flet-name: ${{ vars.APP_NAME }}_macos
-            binary-name: ${{ vars.APP_NAME }}_maco.tar.gz
+            flet-name: ${{ vars.APP_NAME }}
+            binary-name: ${{ vars.APP_NAME }}.tar.gz
     runs-on: ${{ matrix.runs-on }}
     permissions:
       contents: write
@@ -32,7 +34,7 @@ jobs:
         with:
           python-version: '3.11.8' 
       - run: pip install -r requirements.txt
-      - run: flet pack main.py --name ${{ matrix.flet-name }} --icon assets/icon.icns --product-name ${{ matrix.flet-name }}
+      - run: flet pack main.py --name ${{ matrix.flet-name }} --icon assets/icon.icns --product-name ${{ matrix.flet-name }} --product-version ${{ env.VERSION }} --copyright ${{ vars.COPYRIGHT }}
       - name: "Linux/MacOS compress"
         run: tar zcvf ${{matrix.binary-name}} dist
       - name: "Upload Release"

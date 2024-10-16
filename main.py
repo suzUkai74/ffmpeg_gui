@@ -1,5 +1,6 @@
 import flet as ft
 import subprocess
+import os
 
 def main(page: ft.Page):
     page.title = "ffmpeg GUI"
@@ -78,6 +79,14 @@ def main(page: ft.Page):
             return False
 
         return True
+
+    def content_size(path):
+        size = os.path.getsize(path)
+        if size == 0:
+            return "0B"
+
+        size = round(size / 1024 ** 2, 2)
+        return f"{size}MB"
     
     def click_execute(e):
         exec_button.disabled = True
@@ -101,8 +110,9 @@ def main(page: ft.Page):
             cmds.append(f"{escape_for_zsh(selected_directry.value)}/{output_file_name_input.value}.mp4")
             cp = subprocess.run(' '.join(cmds), shell=True, executable='/bin/zsh', capture_output=True)
             if cp.returncode == 0:
-                result_text.value = "動画が作成されました。"
-                load_video(f"{selected_directry.value}/{output_file_name_input.value}.mp4")
+                path = f"{selected_directry.value}/{output_file_name_input.value}.mp4"
+                result_text.value = f"動画が作成されました。\n{content_size(path)}"
+                load_video(path)
             else:
                 result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode()}"
 
