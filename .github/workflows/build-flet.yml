@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: '3.11.8' 
       - run: pip install -r requirements.txt
-      - run: flet pack main.py --name ${{ matrix.flet-name }} --icon assets/icon.icns --product-name ${{ matrix.flet-name }} --product-version ${{ env.VERSION }} --copyright ${{ vars.COPYRIGHT }}
+      - run: flet pack main.py --name ${{ matrix.flet-name }} --icon assets/icon.icns --product-name ${{ matrix.flet-name }} --product-version ${{ env.VERSION }} --copyright "${{ vars.COPYRIGHT }}"
       - name: "Linux/MacOS compress"
         run: tar zcvf ${{matrix.binary-name}} dist
       - name: "Upload Release"
