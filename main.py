@@ -1,6 +1,7 @@
 import flet as ft
 import subprocess
 import os
+import unicodedata
 
 def main(page: ft.Page):
     page.title = "ffmpeg GUI"
@@ -54,26 +55,41 @@ def main(page: ft.Page):
     def escape_for_zsh(str):
         return str.replace(" ", r"\ ")
 
+    def normalize_num(str):
+        return unicodedata.normalize('NFKC', str)
+
     def validate():
         errors = []
         if not selected_file.value:
             errors.append("動画を選択してください。")
+        elif not os.path.exists(selected_file.value):
+            errors.append("動画が存在しない。もしくは使用できない文字(/)が含まれています。")
 
         if not selected_directry.value:
             errors.append("保存先ディレクトリを指定してください。")
+        elif not os.path.exists(selected_directry.value):
+            errors.append("保存先ディレクトリが存在しない。もしくは使用できない文字(/)が含まれています。")
 
         if not output_file_name_input.value:
             errors.append("保存動画名を指定してください。")
 
-        if (scale_height_input.value and not(scale_width_input.value)) or \
-            scale_width_input.value and not(scale_height_input.value) or \
-            scale_width_input.value == "-1" and scale_height_input.value == "-1":
-            errors.append("scaleを正しく設定してください。")
+
+        if (scale_height_input.value or scale_width_input.value):
+            scale_height_input.value = normalize_num(scale_height_input.value)
+            scale_width_input.value = normalize_num(scale_width_input.value)
+
+            if (scale_height_input.value and not(scale_width_input.value)) or \
+                (scale_width_input.value and not(scale_height_input.value)) or \
+                (scale_width_input.value == "-1" and scale_height_input.value == "-1"):
+                errors.append("scaleを正しく設定してください。")
+            elif (not scale_height_input.value.isdecimal() and scale_height_input.value != "-1") or \
+                (not scale_width_input.value.isdecimal() and scale_width_input.value != "-1"):
+                errors.append("scaleには数値を設定してください。")
 
         if errors:
-            result_text.value = "入力項目に不足があります。"
+            result_text.value = "入力項目が正しくありません。下記内容を確認してください。"
             for error in errors:
-                result_text.value += f"\n{error}"
+                result_text.value += f"\n・{error}"
 
             page.update()
             return False
