@@ -9,7 +9,6 @@ def main(page: ft.Page):
     page.title = "ffmpeg GUI"
     page.scroll = ft.ScrollMode.AUTO
     PREVIEW_INDEX = 8
-    capture = ""
 
     def remove_video_info():
         selected_file.value = ""
