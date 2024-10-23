@@ -163,7 +163,6 @@ def main(page: ft.Page):
 
         exec_button.disabled = False
         page.update()
-        return
 
     def label_text(text):
         return ft.Text(f"{text}：", width=150)
