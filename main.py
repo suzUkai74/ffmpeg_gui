@@ -216,7 +216,8 @@ def main(page: ft.Page):
                 label_text("動画"),
                 video_input_button,
                 selected_file,
-            ]
+            ],
+            scroll=ft.ScrollMode.AUTO
         ),
         ft.Row(
             [
@@ -241,7 +242,8 @@ def main(page: ft.Page):
                 label_text("保存先ディレクトリ"),
                 directry_input_button,
                 selected_directry,
-            ]
+            ],
+            scroll=ft.ScrollMode.AUTO
         ),
         ft.Row(
             [
