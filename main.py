@@ -8,7 +8,7 @@ import math
 def main(page: ft.Page):
     page.title = "ffmpeg GUI"
     page.scroll = ft.ScrollMode.AUTO
-    PREVIEW_INDEX = 8
+    PREVIEW_INDEX = 12
 
     def remove_video_info():
         selected_file.value = ""
