@@ -1,20 +1,18 @@
 import flet as ft
-import os
 from PIL import Image
+
+RED_COLOR = "rgba(255,0,0,0.3)"
+BLUE_COLOR = "rgba(0,0,255,0.3)"
 
 class MapEditor:
     def __init__(self, page: ft.Page):
-        self.start = None
-        self.end = None
         self.page = page
         self.rects = []
-        self.selected = None
-        self.preview = ft.Container(visible=False, border=ft.border.all(1,"blue"), bgcolor="rgba(0,0,255,0.3)")
-        self.stack = None
         self.img_path = ""
         self.img_width = 0
         self.img_height = 0
-        self.min_drag_distance = 10
+        self.min_drag_distance = 30
+        self.reset()
 
     def reset(self):
         self.start = None
@@ -22,7 +20,7 @@ class MapEditor:
         self.rects.clear()
         self.selected = None
         self.stack = None
-        self.preview = ft.Container(visible=False, border=ft.border.all(1, "blue"), bgcolor="rgba(0,0,255,0.3)")
+        self.preview = ft.Container(visible=False, border=ft.border.all(1, "blue"), bgcolor=BLUE_COLOR)
 
     def load_image(self, path):
         self.reset()
@@ -30,7 +28,7 @@ class MapEditor:
         with Image.open(path) as img:
             self.img_width, self.img_height = img.size
 
-        self.preview = ft.Container(visible=False, border=ft.border.all(1,"blue"), bgcolor="rgba(0,0,255,0.3)")
+        self.preview = ft.Container(visible=False, border=ft.border.all(1,"blue"), bgcolor=BLUE_COLOR)
 
         self.stack = ft.Stack(
             width=self.img_width,
@@ -92,7 +90,7 @@ class MapEditor:
                 left=rect["x"], top=rect["y"],
                 width=rect["w"], height=rect["h"],
                 border=ft.border.all(2, "blue"),
-                bgcolor="rgba(255,0,0,0.3)",
+                bgcolor=RED_COLOR,
                 on_click=lambda e, r=rect: self.select(r)
             )
             rect["container"] = cont
@@ -107,10 +105,10 @@ class MapEditor:
         for r in self.rects:
             if r is rect:
                 r["container"].border = ft.border.all(2, "red")
-                r["container"].bgcolor = "rgba(255,0,0,0.3)"
+                r["container"].bgcolor = RED_COLOR
             else:
                 r["container"].border = ft.border.all(2, "blue")
-                r["container"].bgcolor = "rgba(0,0,255,0.3)"
+                r["container"].bgcolor = BLUE_COLOR
         self.selected = rect
         self.stack.update()
 
@@ -122,14 +120,15 @@ class MapEditor:
             self.stack.update()
 
     def output_imagemap(self):
-        lines = []
+        text = ""
         for r in self.rects:
-            x1 = int(r["x"])
-            y1 = int(r["y"])
-            x2 = x1 + int(r["w"])
-            y2 = y1 + int(r["h"])
-            lines.append(f'<area shape="rect" coords="{x1},{y1},{x2},{y2}" href="#" />')
-        return "\n".join(lines)
+            if r is self.selected:
+                x1 = int(r["x"])
+                y1 = int(r["y"])
+                x2 = x1 + int(r["w"])
+                y2 = y1 + int(r["h"])
+                text = (f'{x1},{y1},{x2},{y2}')
+        return text
 
     def build_ui(self):
         return [
@@ -141,11 +140,27 @@ class MapEditor:
         ]
 
     def show_output(self):
-        result = self.output_imagemap()
+        text = self.output_imagemap()
+
+        def copy_to_clipboard(e):
+            self.page.set_clipboard(text)
+            close_dialog()
+            snack_bar = ft.SnackBar(ft.Text("コピーしました！"), bgcolor=ft.colors.GREEN_ACCENT_200)
+            self.page.overlay.append(snack_bar)
+            snack_bar.open = True
+            self.page.update()
+
+        def close_dialog():
+            dialog.open = False
+            self.page.update()
+
         dialog = ft.AlertDialog(
             title=ft.Text("HTML イメージマップ"),
-            content=ft.Text(result),
-            on_dismiss=lambda e: None
+            content=ft.Text(text),
+            actions=[
+                ft.TextButton("コピー", on_click=copy_to_clipboard),
+                ft.TextButton("閉じる", on_click=lambda e: close_dialog())
+            ],
         )
         self.page.overlay.append(dialog)
         dialog.open = True
