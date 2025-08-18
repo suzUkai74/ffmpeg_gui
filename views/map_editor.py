@@ -134,7 +134,7 @@ class MapEditor:
         return [
             ft.Row([
                 ft.ElevatedButton("矩形を削除", on_click=self.delete_selected),
-                ft.ElevatedButton("イメージマップ出力", on_click=lambda e: self.show_output())
+                ft.ElevatedButton("イメージマップ座標出力", on_click=lambda e: self.show_output())
             ]),
             self.stack if self.stack else ft.Text("画像を読み込んでください")
         ]
@@ -155,7 +155,7 @@ class MapEditor:
             self.page.update()
 
         dialog = ft.AlertDialog(
-            title=ft.Text("HTML イメージマップ"),
+            title=ft.Text("イメージマップ座標"),
             content=ft.Text(text),
             actions=[
                 ft.TextButton("コピー", on_click=copy_to_clipboard),
