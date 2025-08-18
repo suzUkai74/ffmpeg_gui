@@ -11,7 +11,7 @@ class Image:
                                     "画像を選択",
                                     icon=ft.icons.UPLOAD_FILE,
                                     on_click=lambda _: self.pick_file.pick_files(allow_multiple=False)
-                             )
+                                  )
         self.view_items = [
             ft.Row(
                 [
