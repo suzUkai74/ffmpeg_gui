@@ -69,10 +69,11 @@ class PdfCombine(BaseView):
         self.page.overlay.extend([self.pick_file,self.get_directry])
 
     def pick_files_result(self, e: ft.FilePickerResultEvent):
-        self.pdf_files = []
-        for file in e.files:
-            self.pdf_files.append(file.path)
-        self.update_list()
+        if e.files:
+            self.pdf_files = []
+            for file in e.files:
+                self.pdf_files.append(file.path)
+            self.update_list()
 
     def get_directry_result(self, e: ft.FilePickerResultEvent):
         self.selected_directry.value = e.path if e.path else "キャンセルされました。"
