@@ -21,7 +21,7 @@ class Image(BaseView):
                 scroll=ft.ScrollMode.AUTO
             ),
         ]
-        self.view = ft.Column(self.view_items, ref=self.ref)
+        self.set_view
         self.page.overlay.extend([self.pick_file])
 
     def pick_files_result(self, e: ft.FilePickerResultEvent):

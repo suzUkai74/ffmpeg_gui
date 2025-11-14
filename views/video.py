@@ -117,7 +117,7 @@ class Video(BaseView):
                 ]
             ),
         ]
-        self.view = ft.Column(self.view_items, ref=self.ref)
+        self.set_view()
         page.overlay.extend([self.pick_file,self.get_directry])
 
     def remove_video_info(self):

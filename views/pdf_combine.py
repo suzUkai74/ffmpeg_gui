@@ -3,18 +3,12 @@ import os
 import subprocess
 from .base_view import BaseView
 
-PDF_QUALITIES = {
-    "低": "screen",
-    "中": "ebook",
-    "高": "printer",
-    "最高": "prepress",
-}
-
-class PdfCompression(BaseView):
+class PdfCombine(BaseView):
     def __init__(self, page: ft.Page):
         super().__init__(page)
         self.pick_file = ft.FilePicker(on_result=self.pick_files_result)
-        self.selected_file = ft.Text()
+        self.pdf_files = []
+        self.pdf_file_list = ft.Column(spacing=5)
         self.get_directry = ft.FilePicker(on_result=self.get_directry_result)
         self.selected_directry = ft.Text()
         self.directry_input_button = ft.ElevatedButton(
@@ -23,12 +17,6 @@ class PdfCompression(BaseView):
                                     on_click=lambda _: self.get_directry.get_directory_path(),
                                 )
         self.output_file_name_input = ft.TextField(label="保存動画名", width="200")
-        self.quality = ft.Dropdown(
-            options=self.get_quality_options(),
-            value="ebook",
-            width=150,
-            label="画質設定",
-        )
         self.exec_button = ft.FilledButton(
                           "実行",
                          on_click=self.click_execute,
@@ -41,11 +29,16 @@ class PdfCompression(BaseView):
                     ft.ElevatedButton(
                         "PDFを選択",
                         icon=ft.icons.UPLOAD_FILE,
-                        on_click=lambda _: self.pick_file.pick_files(allow_multiple=False)
+                        on_click=lambda _: self.pick_file.pick_files(allow_multiple=True),
                     ),
-                    self.selected_file,
                 ],
                 scroll=ft.ScrollMode.AUTO
+            ),
+            ft.Row(
+                [
+                    self.label_text("PDFファイル順序"),
+                    self.pdf_file_list,
+                ],
             ),
             ft.Row(
                 [
@@ -63,12 +56,6 @@ class PdfCompression(BaseView):
             ),
             ft.Row(
                 [
-                    self.label_text("画質設定"),
-                    self.quality,
-                ]
-            ),
-            ft.Row(
-                [
                     self.exec_button,
                 ]
             ),
@@ -80,26 +67,45 @@ class PdfCompression(BaseView):
         ]
         self.set_view()
         self.page.overlay.extend([self.pick_file,self.get_directry])
-    
-    def get_quality_options(self):
-        return [ft.dropdown.Option(key=v, text=k) for k, v in PDF_QUALITIES.items()]
 
     def pick_files_result(self, e: ft.FilePickerResultEvent):
-        if len(e.files) == 1:
-            self.selected_file.value = e.files[0].path
-
-        self.selected_file.update()
+        self.pdf_files = []
+        for file in e.files:
+            self.pdf_files.append(file.path)
+        self.update_list()
 
     def get_directry_result(self, e: ft.FilePickerResultEvent):
         self.selected_directry.value = e.path if e.path else "キャンセルされました。"
         self.selected_directry.update()
 
+    def move_up(self, e, index):
+        if index > 0:
+            self.pdf_files[index - 1], self.pdf_files[index] = self.pdf_files[index], self.pdf_files[index - 1]
+            self.update_list()
+
+    def move_down(self, e, index):
+        if index < len(self.pdf_files) - 1:
+            self.pdf_files[index + 1], self.pdf_files[index] = self.pdf_files[index], self.pdf_files[index + 1]
+            self.update_list()
+
+    def update_list(self):
+        self.pdf_file_list.controls.clear()
+        for i, filepath in enumerate(self.pdf_files):
+            row = ft.Row(
+                [
+                    ft.Text(self.get_filename(filepath), width=150),
+                    ft.IconButton(ft.icons.ARROW_UPWARD, on_click=lambda e, i=i: self.move_up(e, i)),
+                    ft.IconButton(ft.icons.ARROW_DOWNWARD, on_click=lambda e, i=i: self.move_down(e, i)),
+                ],
+                alignment=ft.MainAxisAlignment.START,
+            )
+            self.pdf_file_list.controls.append(row)
+        self.ref.current.update()
+
     def validate(self):
         errors = []
-        if not self.selected_file.value:
-            errors.append("PDFを選択してください。")
-        elif not os.path.exists(self.selected_file.value):
-            errors.append("PDFが存在しない。もしくは使用できない文字(/)が含まれています。")
+        if not len(self.pdf_files) >= 2:
+            errors.append("PDFを2つ以上選択してください。")
 
         if not self.selected_directry.value:
             errors.append("保存先ディレクトリを指定してください。")
@@ -127,14 +133,12 @@ class PdfCompression(BaseView):
             cmds = [
                 "gs",
                 "-sDEVICE=pdfwrite",
-                "-dCompatibilityLevel=1.4",
                 "-dNOPAUSE",
                 "-dQUIET",
                 "-dBATCH",
-                f"-dPDFSETTINGS=/{self.quality.value}",
                 f"-sOutputFile={self.escape_for_zsh(self.selected_directry.value)}/{self.output_file_name_input.value}.pdf",
-                f"{self.escape_for_zsh(self.selected_file.value)}",
             ]
+            cmds += [self.escape_for_zsh(path) for path in self.pdf_files]
             cp = subprocess.run(' '.join(cmds), shell=True, executable='/bin/zsh', capture_output=True)
             if cp.returncode == 0:
                 path = f"{self.selected_directry.value}/{self.output_file_name_input.value}.pdf"

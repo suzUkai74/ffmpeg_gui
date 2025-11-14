@@ -6,6 +6,9 @@ class BaseView:
         self.page = page
         self.ref = ft.Ref[ft.Column]()
 
+    def set_view(self):
+        self.view = ft.Column(self.view_items, ref=self.ref)
+
     def get_view(self):
         return self.view
 
@@ -13,7 +16,7 @@ class BaseView:
         return ft.Text(f"{text}：", width=150)
 
     def escape_for_zsh(self, str):
-        return str.replace(" ", r"\ ")
+        return str.replace(" ", "\\ ").replace("(", "\\(").replace(")", "\\)")
 
     def content_size(self, path):
         size = os.path.getsize(path)
@@ -22,4 +25,7 @@ class BaseView:
 
         size = round(size / 1024 ** 2, 2)
         return f"{size}MB"
+
+    def get_filename(self, path):
+        return os.path.basename(path)
     
