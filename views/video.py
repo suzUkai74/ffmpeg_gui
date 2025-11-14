@@ -4,12 +4,12 @@ import math
 import os
 import unicodedata
 import subprocess
+from .base_view import BaseView
 PREVIEW_INDEX = 12
 
-class Video:
+class Video(BaseView):
     def __init__(self, page: ft.Page):
-        self.page = page
-        self.ref = ft.Ref[ft.Column]()
+        super().__init__(page)
         self.pick_file = ft.FilePicker(on_result=self.pick_files_result)
         self.selected_file = ft.Text()
         self.get_directry = ft.FilePicker(on_result=self.get_directry_result)
@@ -25,7 +25,7 @@ class Video:
                              )
         self.directry_input_button = ft.ElevatedButton(
                                     "保存先ディレクトリを指定",
-                                    icon=ft.icons.UPLOAD_FILE,
+                                    icon=ft.icons.FOLDER_OPEN,
                                     on_click=lambda _: self.get_directry.get_directory_path(),
                                 )
         self.output_file_name_input = ft.TextField(label="保存動画名", width="200")
@@ -120,9 +120,6 @@ class Video:
         self.view = ft.Column(self.view_items, ref=self.ref)
         page.overlay.extend([self.pick_file,self.get_directry])
 
-    def get_view(self):
-        return self.view
-
     def remove_video_info(self):
         self.selected_file.value = ""
         self.aspect_text.value = ""
@@ -188,9 +185,6 @@ class Video:
         )
         self.view.update()
 
-    def escape_for_zsh(self, str):
-        return str.replace(" ", r"\ ")
-
     def normalize_num(self, str):
         return unicodedata.normalize('NFKC', str)
 
@@ -233,14 +227,6 @@ class Video:
 
         return True
 
-    def content_size(self, path):
-        size = os.path.getsize(path)
-        if size == 0:
-            return "0B"
-
-        size = round(size / 1024 ** 2, 2)
-        return f"{size}MB"
-    
     def click_execute(self, e):
         self.exec_button.disabled = True
         if self.validate():
@@ -277,9 +263,6 @@ class Video:
 
         self.exec_button.disabled = False
         self.ref.current.update()
-
-    def label_text(self, text):
-        return ft.Text(f"{text}：", width=150)
 
     def remove_audio_changed(self, e):
         self.scale_height_input.value = ""

@@ -1,6 +1,7 @@
 import flet as ft
 from views.video import Video
 from views.image import Image
+from views.pdf_compression import PdfCompression
 
 def main(page: ft.Page):
     page.title = "ffmpeg GUI"
@@ -8,6 +9,7 @@ def main(page: ft.Page):
 
     video = Video(page)
     image = Image(page)
+    pdf_compression = PdfCompression(page)
 
     tab = ft.Tabs(
         selected_index=0,
@@ -17,6 +19,11 @@ def main(page: ft.Page):
                 text="動画加工",
                 icon=ft.icons.ONDEMAND_VIDEO,
                 content=ft.Container(video.get_view(), padding=10),
+            ),
+            ft.Tab(
+                text="PDF圧縮",
+                icon=ft.icons.PICTURE_AS_PDF,
+                content=ft.Container(pdf_compression.get_view(), padding=10),
             ),
             ft.Tab(
                 text="画像座標",

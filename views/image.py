@@ -1,10 +1,10 @@
 import flet as ft
 from .map_editor import MapEditor
+from .base_view import BaseView
 
-class Image:
+class Image(BaseView):
     def __init__(self, page: ft.Page):
-        self.page = page
-        self.ref = ft.Ref[ft.Column]()
+        super().__init__(page)
         self.pick_file = ft.FilePicker(on_result=self.pick_files_result)
         self.editor = MapEditor(page)
         self.image_input_button = ft.ElevatedButton(
@@ -23,12 +23,6 @@ class Image:
         ]
         self.view = ft.Column(self.view_items, ref=self.ref)
         self.page.overlay.extend([self.pick_file])
-
-    def get_view(self):
-        return self.view
-
-    def label_text(self, text):
-        return ft.Text(f"{text}：", width=150)
 
     def pick_files_result(self, e: ft.FilePickerResultEvent):
       if e.files:
