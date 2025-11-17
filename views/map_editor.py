@@ -1,0 +1,167 @@
+import flet as ft
+from PIL import Image
+
+RED_COLOR = "rgba(255,0,0,0.3)"
+BLUE_COLOR = "rgba(0,0,255,0.3)"
+
+class MapEditor:
+    def __init__(self, page: ft.Page):
+        self.page = page
+        self.rects = []
+        self.img_path = ""
+        self.img_width = 0
+        self.img_height = 0
+        self.min_drag_distance = 30
+        self.reset()
+
+    def reset(self):
+        self.start = None
+        self.end = None
+        self.rects.clear()
+        self.selected = None
+        self.stack = None
+        self.preview = ft.Container(visible=False, border=ft.border.all(1, "blue"), bgcolor=BLUE_COLOR)
+
+    def load_image(self, path):
+        self.reset()
+        self.img_path = path
+        with Image.open(path) as img:
+            self.img_width, self.img_height = img.size
+
+        self.preview = ft.Container(visible=False, border=ft.border.all(1,"blue"), bgcolor=BLUE_COLOR)
+
+        self.stack = ft.Stack(
+            width=self.img_width,
+            height=self.img_height,
+            alignment=ft.alignment.center,
+            controls=[
+                ft.Image(src=f"/{path}", width=self.img_width, height=self.img_height),
+                self.preview,
+                ft.GestureDetector(
+                    content=ft.Container(width=self.img_width, height=self.img_height, bgcolor="transparent"),
+                    on_pan_start=self.down,
+                    on_pan_update=self.move,
+                    on_pan_end=self.up
+                )
+            ]
+        )
+
+    def down(self, e):
+        self.start = (e.local_x, e.local_y)
+        self.preview.left = e.local_x
+        self.preview.top = e.local_y
+        self.preview.width = 1
+        self.preview.height = 1
+        self.preview.visible = True
+        self.stack.update()
+
+    def move(self, e):
+        if self.start:
+            x1, y1 = self.start
+            x2, y2 = e.local_x, e.local_y
+            self.end = (x2, y2)
+            self.preview.left = min(x1, x2)
+            self.preview.top = min(y1, y2)
+            self.preview.width = abs(x2 - x1)
+            self.preview.height = abs(y2 - y1)
+            self.stack.update()
+
+    def up(self, e):
+        if self.start and self.end:
+            x1, y1 = self.start
+            x2, y2 = self.end
+            dx = abs(x2 - x1)
+            dy = abs(y2 - y1)
+
+            if dx < self.min_drag_distance or dy < self.min_drag_distance:
+                self.preview.visible = False
+                self.stack.update()
+                self.start = None
+                return
+
+            rect = {
+                "x": self.preview.left,
+                "y": self.preview.top,
+                "w": self.preview.width,
+                "h": self.preview.height,
+                "container": None
+            }
+            cont = ft.Container(
+                left=rect["x"], top=rect["y"],
+                width=rect["w"], height=rect["h"],
+                border=ft.border.all(2, "blue"),
+                bgcolor=RED_COLOR,
+                on_click=lambda e, r=rect: self.select(r)
+            )
+            rect["container"] = cont
+            self.rects.append(rect)
+            self.stack.controls.append(cont)
+            self.preview.visible = False
+            self.start = None
+            self.end = None
+            self.stack.update()
+
+    def select(self, rect):
+        for r in self.rects:
+            if r is rect:
+                r["container"].border = ft.border.all(2, "red")
+                r["container"].bgcolor = RED_COLOR
+            else:
+                r["container"].border = ft.border.all(2, "blue")
+                r["container"].bgcolor = BLUE_COLOR
+        self.selected = rect
+        self.stack.update()
+
+    def delete_selected(self, _):
+        if self.selected:
+            self.stack.controls.remove(self.selected["container"])
+            self.rects.remove(self.selected)
+            self.selected = None
+            self.stack.update()
+
+    def output_imagemap(self):
+        text = ""
+        for r in self.rects:
+            if r is self.selected:
+                x1 = int(r["x"])
+                y1 = int(r["y"])
+                x2 = x1 + int(r["w"])
+                y2 = y1 + int(r["h"])
+                text = (f'{x1},{y1},{x2},{y2}')
+        return text
+
+    def build_ui(self):
+        return [
+            ft.Row([
+                ft.ElevatedButton("矩形を削除", on_click=self.delete_selected),
+                ft.ElevatedButton("イメージマップ座標出力", on_click=lambda e: self.show_output())
+            ]),
+            self.stack if self.stack else ft.Text("画像を読み込んでください")
+        ]
+
+    def show_output(self):
+        text = self.output_imagemap()
+
+        def copy_to_clipboard(e):
+            self.page.set_clipboard(text)
+            close_dialog()
+            snack_bar = ft.SnackBar(ft.Text("コピーしました！"), bgcolor=ft.colors.GREEN_ACCENT_200)
+            self.page.overlay.append(snack_bar)
+            snack_bar.open = True
+            self.page.update()
+
+        def close_dialog():
+            dialog.open = False
+            self.page.update()
+
+        dialog = ft.AlertDialog(
+            title=ft.Text("イメージマップ座標"),
+            content=ft.Text(text),
+            actions=[
+                ft.TextButton("コピー", on_click=copy_to_clipboard),
+                ft.TextButton("閉じる", on_click=lambda e: close_dialog())
+            ],
+        )
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
