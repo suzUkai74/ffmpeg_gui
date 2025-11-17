@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs-on: macos-latest
+          - runs-on: macos-14
             flet-name: ${{ vars.APP_NAME }}
             binary-name: ${{ vars.APP_NAME }}.tar.gz
     runs-on: ${{ matrix.runs-on }}
