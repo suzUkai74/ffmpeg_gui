@@ -8,10 +8,10 @@ class Image(BaseView):
         self.pick_file = ft.FilePicker(on_result=self.pick_files_result)
         self.editor = MapEditor(page)
         self.image_input_button = ft.ElevatedButton(
-                                    "画像を選択",
-                                    icon=ft.icons.UPLOAD_FILE,
-                                    on_click=lambda _: self.pick_file.pick_files(allow_multiple=False)
-                                  )
+            "画像を選択",
+            icon=ft.icons.UPLOAD_FILE,
+            on_click=lambda _: self.pick_file.pick_files(allow_multiple=False)
+        )
         self.view_items = [
             ft.Row(
                 [

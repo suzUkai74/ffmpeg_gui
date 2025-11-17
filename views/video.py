@@ -15,19 +15,19 @@ class Video(BaseView):
         self.get_directry = ft.FilePicker(on_result=self.get_directry_result)
         self.selected_directry = ft.Text()
         self.exec_button = ft.FilledButton(
-                          "実行",
-                         on_click=self.click_execute,
-                      )
+            "実行",
+            on_click=self.click_execute,
+        )
         self.video_input_button = ft.ElevatedButton(
-                                 "動画を選択",
-                                 icon=ft.icons.UPLOAD_FILE,
-                                 on_click=lambda _: self.pick_file.pick_files(),
-                             )
+            "動画を選択",
+            icon=ft.icons.UPLOAD_FILE,
+            on_click=lambda _: self.pick_file.pick_files(),
+        )
         self.directry_input_button = ft.ElevatedButton(
-                                    "保存先ディレクトリを指定",
-                                    icon=ft.icons.FOLDER_OPEN,
-                                    on_click=lambda _: self.get_directry.get_directory_path(),
-                                )
+            "保存先ディレクトリを指定",
+            icon=ft.icons.FOLDER_OPEN,
+            on_click=lambda _: self.get_directry.get_directory_path(),
+        )
         self.output_file_name_input = ft.TextField(label="保存動画名", width="200")
         self.crf_input_slider = ft.Slider(min=0, max=51, divisions=51, value=23, label="{value}", on_change=self.update_crf_value_text)
         self.crf_value_text = ft.Text(self.crf_input_slider.value, width="30")

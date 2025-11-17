@@ -12,15 +12,15 @@ class PdfCombine(BaseView):
         self.get_directry = ft.FilePicker(on_result=self.get_directry_result)
         self.selected_directry = ft.Text()
         self.directry_input_button = ft.ElevatedButton(
-                                    "保存先ディレクトリを指定",
-                                    icon=ft.icons.FOLDER_OPEN,
-                                    on_click=lambda _: self.get_directry.get_directory_path(),
-                                )
+            "保存先ディレクトリを指定",
+            icon=ft.icons.FOLDER_OPEN,
+            on_click=lambda _: self.get_directry.get_directory_path(),
+        )
         self.output_file_name_input = ft.TextField(label="保存動画名", width="200")
         self.exec_button = ft.FilledButton(
-                          "実行",
-                         on_click=self.click_execute,
-                      )
+            "実行",
+            on_click=self.click_execute,
+        )
         self.result_text = ft.Text()
         self.view_items = [
             ft.Row(
