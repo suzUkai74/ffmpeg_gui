@@ -28,8 +28,6 @@ class MapEditor:
         with Image.open(path) as img:
             self.img_width, self.img_height = img.size
 
-        self.preview = ft.Container(visible=False, border=ft.border.all(1,"blue"), bgcolor=BLUE_COLOR)
-
         self.stack = ft.Stack(
             width=self.img_width,
             height=self.img_height,
@@ -120,15 +118,14 @@ class MapEditor:
             self.stack.update()
 
     def output_imagemap(self):
-        text = ""
-        for r in self.rects:
-            if r is self.selected:
-                x1 = int(r["x"])
-                y1 = int(r["y"])
-                x2 = x1 + int(r["w"])
-                y2 = y1 + int(r["h"])
-                text = (f'{x1},{y1},{x2},{y2}')
-        return text
+        if not self.selected:
+            return ""
+
+        x1 = int(self.selected["x"])
+        y1 = int(self.selected["y"])
+        x2 = x1 + int(self.selected["w"])
+        y2 = y1 + int(self.selected["h"])
+        return f'{x1},{y1},{x2},{y2}'
 
     def build_ui(self):
         return [

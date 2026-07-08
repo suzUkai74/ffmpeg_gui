@@ -15,9 +15,6 @@ class BaseView:
     def label_text(self, text):
         return ft.Text(f"{text}：", width=150)
 
-    def escape_for_zsh(self, str):
-        return str.replace(" ", "\\ ").replace("(", "\\(").replace(")", "\\)")
-
     def content_size(self, path):
         size = os.path.getsize(path)
         if size == 0:
@@ -28,4 +25,3 @@ class BaseView:
 
     def get_filename(self, path):
         return os.path.basename(path)
-    

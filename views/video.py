@@ -1,34 +1,23 @@
 import flet as ft
 import cv2
 import math
-import os
 import unicodedata
-import subprocess
-from .base_view import BaseView
-PREVIEW_INDEX = 12
+from .command_view import CommandView
 
-class Video(BaseView):
+class Video(CommandView):
+    output_name_label = "保存動画名"
+    output_extension = "mp4"
+    created_message = "動画が作成されました。"
+
     def __init__(self, page: ft.Page):
         super().__init__(page)
         self.pick_file = ft.FilePicker(on_result=self.pick_files_result)
         self.selected_file = ft.Text()
-        self.get_directry = ft.FilePicker(on_result=self.get_directry_result)
-        self.selected_directry = ft.Text()
-        self.exec_button = ft.FilledButton(
-            "実行",
-            on_click=self.click_execute,
-        )
         self.video_input_button = ft.ElevatedButton(
             "動画を選択",
             icon=ft.icons.UPLOAD_FILE,
             on_click=lambda _: self.pick_file.pick_files(),
         )
-        self.directry_input_button = ft.ElevatedButton(
-            "保存先ディレクトリを指定",
-            icon=ft.icons.FOLDER_OPEN,
-            on_click=lambda _: self.get_directry.get_directory_path(),
-        )
-        self.output_file_name_input = ft.TextField(label="保存動画名", width="200")
         self.crf_input_slider = ft.Slider(min=0, max=51, divisions=51, value=23, label="{value}", on_change=self.update_crf_value_text)
         self.crf_value_text = ft.Text(self.crf_input_slider.value, width="30")
         self.crf_help_text = ft.Text("※数値が小さいほど高品質になります。")
@@ -38,7 +27,6 @@ class Video(BaseView):
         self.scale_width_input = ft.TextField(label="Width", width="80", on_change=self.scale_input_changed)
         self.scale_height_input = ft.TextField(label="Height", width="80", on_change=self.scale_input_changed)
         self.scale_help_text = ft.Text("※-1を設定するとアスペクト比を維持して自動調整します。")
-        self.result_text = ft.Text()
         self.remove_audio = ft.Checkbox(value=False, on_change=self.remove_audio_changed)
         self.remove_audio_help_text = ft.Text("※音声削除と解像度は同時選択できません。")
         self.view_items = [
@@ -68,20 +56,8 @@ class Video(BaseView):
                     self.aspect_text,
                 ]
             ),
-            ft.Row(
-                [
-                    self.label_text("保存先ディレクトリ"),
-                    self.directry_input_button,
-                    self.selected_directry,
-                ],
-                scroll=ft.ScrollMode.AUTO
-            ),
-            ft.Row(
-                [
-                    self.label_text("保存動画名"),
-                    self.output_file_name_input,
-                ]
-            ),
+            self.directory_row(),
+            self.output_name_row(),
             ft.Row(
                 [
                     self.label_text("品質設定"),
@@ -106,19 +82,11 @@ class Video(BaseView):
                     self.remove_audio_help_text,
                 ]
             ),
-            ft.Row(
-                [
-                    self.exec_button,
-                ]
-            ),
-            ft.Row(
-                [
-                    self.result_text,
-                ]
-            ),
+            *self.execute_rows(),
         ]
+        self.base_row_count = len(self.view_items)
         self.set_view()
-        page.overlay.extend([self.pick_file,self.get_directry])
+        page.overlay.extend([self.pick_file, self.get_directory])
 
     def remove_video_info(self):
         self.selected_file.value = ""
@@ -127,18 +95,14 @@ class Video(BaseView):
         self.video_size_text.value = ""
 
     def pick_files_result(self, e: ft.FilePickerResultEvent):
-        if e.files is None:
-            self.remove_video_info()
-        elif len(e.files) == 1:
+        if e.files is not None and len(e.files) == 1:
             self.selected_file.value = e.files[0].path
             capture = cv2.VideoCapture(self.selected_file.value)
             w = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
             h = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
             gcd = math.gcd(w, h)
-            aw = int(w / gcd)
-            ah = int(h / gcd)
             self.definition_text.value = f"{w}×{h}"
-            self.aspect_text.value = f"{aw}:{ah}"
+            self.aspect_text.value = f"{int(w / gcd)}:{int(h / gcd)}"
             self.video_size_text.value = self.content_size(self.selected_file.value)
         else:
             self.remove_video_info()
@@ -148,18 +112,13 @@ class Video(BaseView):
         self.definition_text.update()
         self.video_size_text.update()
 
-    def get_directry_result(self, e: ft.FilePickerResultEvent):
-        self.selected_directry.value = e.path if e.path else "キャンセルされました。"
-        self.selected_directry.update()
-
     def update_crf_value_text(self, e):
         self.crf_value_text.value = round(self.crf_input_slider.value)
         self.crf_value_text.update()
 
     def load_video(self, path):
         target_video = ft.VideoMedia(path)
-        if len(self.view.controls) == PREVIEW_INDEX:
-            print('Removing previous video preview...')
+        if len(self.view.controls) > self.base_row_count:
             self.view.controls.pop()
 
         video = ft.Video(
@@ -188,22 +147,11 @@ class Video(BaseView):
     def normalize_num(self, str):
         return unicodedata.normalize('NFKC', str)
 
-    def validate(self):
-        errors = []
-        if not self.selected_file.value:
-            errors.append("動画を選択してください。")
-        elif not os.path.exists(self.selected_file.value):
-            errors.append("動画が存在しない。もしくは使用できない文字(/)が含まれています。")
+    def collect_errors(self):
+        errors = self.input_file_errors(self.selected_file, "動画")
+        errors += super().collect_errors()
 
-        if not self.selected_directry.value:
-            errors.append("保存先ディレクトリを指定してください。")
-        elif not os.path.exists(self.selected_directry.value):
-            errors.append("保存先ディレクトリが存在しない。もしくは使用できない文字(/)が含まれています。")
-
-        if not self.output_file_name_input.value:
-            errors.append("保存動画名を指定してください。")
-
-        if (self.scale_height_input.value or self.scale_width_input.value):
+        if self.scale_height_input.value or self.scale_width_input.value:
             self.scale_height_input.value = self.normalize_num(self.scale_height_input.value)
             self.scale_width_input.value = self.normalize_num(self.scale_width_input.value)
 
@@ -217,52 +165,34 @@ class Video(BaseView):
                 (not self.scale_width_input.value.isdecimal() and self.scale_width_input.value != "-1"):
                 errors.append("解像度には数値を設定してください。")
 
-        if errors:
-            self.result_text.value = "入力項目が正しくありません。下記内容を確認してください。"
-            for error in errors:
-                self.result_text.value += f"\n・{error}"
+        return errors
 
-            self.ref.current.update()
-            return False
-
-        return True
-
-    def click_execute(self, e):
-        self.exec_button.disabled = True
-        if self.validate():
-            self.result_text.value = "実行中..."
-            self.ref.current.update()
-            cmds = [
-                "ffmpeg",
-                "-y",
-                "-i",
-                self.escape_for_zsh(self.selected_file.value),
-                "-crf",
-                str(self.crf_value_text.value),
+    def build_command(self):
+        cmds = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            self.selected_file.value,
+            "-crf",
+            str(self.crf_value_text.value),
+        ]
+        if self.scale_width_input.value and self.scale_height_input.value:
+            cmds += [
+                "-vf",
+                f"scale={self.scale_width_input.value}:{self.scale_height_input.value}",
             ]
-            if self.scale_width_input.value and self.scale_height_input.value:
-                cmds += [
-                    "-vf",
-                    f"scale={self.scale_width_input.value}:{self.scale_height_input.value}",
-                ]
-            elif self.remove_audio.value:
-                cmds += [
-                    "-vcodec",
-                    "copy",
-                    "-an",
-                ]
-            
-            cmds.append(f"{self.escape_for_zsh(self.selected_directry.value)}/{self.output_file_name_input.value}.mp4")
-            cp = subprocess.run(' '.join(cmds), shell=True, executable='/bin/zsh', capture_output=True)
-            if cp.returncode == 0:
-                path = f"{self.selected_directry.value}/{self.output_file_name_input.value}.mp4"
-                self.result_text.value = f"動画が作成されました。\n{self.content_size(path)}"
-                self.load_video(path)
-            else:
-                self.result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode()}"
+        elif self.remove_audio.value:
+            cmds += [
+                "-vcodec",
+                "copy",
+                "-an",
+            ]
 
-        self.exec_button.disabled = False
-        self.ref.current.update()
+        cmds.append(self.output_path())
+        return cmds
+
+    def on_success(self, path):
+        self.load_video(path)
 
     def remove_audio_changed(self, e):
         self.scale_height_input.value = ""

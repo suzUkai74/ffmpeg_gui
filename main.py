@@ -8,35 +8,23 @@ def main(page: ft.Page):
     page.title = "ffmpeg GUI"
     page.scroll = ft.ScrollMode.AUTO
 
-    video = Video(page)
-    image = Image(page)
-    pdf_compression = PdfCompression(page)
-    pdf_combine = PdfCombine(page)
+    views = [
+        ("動画加工", ft.icons.ONDEMAND_VIDEO, Video(page)),
+        ("PDF圧縮", ft.icons.PICTURE_AS_PDF, PdfCompression(page)),
+        ("PDF結合", ft.icons.PICTURE_AS_PDF, PdfCombine(page)),
+        ("画像座標", ft.icons.IMAGE, Image(page)),
+    ]
 
     tab = ft.Tabs(
         selected_index=0,
         animation_duration=200,
         tabs=[
             ft.Tab(
-                text="動画加工",
-                icon=ft.icons.ONDEMAND_VIDEO,
-                content=ft.Container(video.get_view(), padding=10),
-            ),
-            ft.Tab(
-                text="PDF圧縮",
-                icon=ft.icons.PICTURE_AS_PDF,
-                content=ft.Container(pdf_compression.get_view(), padding=10),
-            ),
-            ft.Tab(
-                text="PDF結合",
-                icon=ft.icons.PICTURE_AS_PDF,
-                content=ft.Container(pdf_combine.get_view(), padding=10),
-            ),
-            ft.Tab(
-                text="画像座標",
-                icon=ft.icons.IMAGE,
-                content=ft.Container(image.get_view(), padding=10),
-            ),
+                text=text,
+                icon=icon,
+                content=ft.Container(view.get_view(), padding=10),
+            )
+            for text, icon, view in views
         ],
         unselected_label_color=ft.colors.GREY_400,
         expand=1,
