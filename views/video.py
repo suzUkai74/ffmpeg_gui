@@ -4,6 +4,9 @@ import subprocess
 import unicodedata
 from .command_view import CommandView
 
+# mp4コンテナに再エンコードなしで格納できるコーデック
+MP4_COPYABLE_CODECS = {"h264", "hevc", "av1", "vp9", "mpeg4"}
+
 class Video(CommandView):
     output_name_label = "保存動画名"
     output_extension = "mp4"
@@ -120,6 +123,27 @@ class Video(CommandView):
 
         return w, h
 
+    def get_video_codec(self, path):
+        try:
+            cp = subprocess.run(
+                [
+                    self.resolve_command("ffprobe"),
+                    "-v", "error",
+                    "-select_streams", "v:0",
+                    "-show_entries", "stream=codec_name",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    path,
+                ],
+                capture_output=True,
+            )
+        except OSError:
+            return None
+
+        if cp.returncode != 0:
+            return None
+
+        return cp.stdout.decode().strip() or None
+
     def pick_files_result(self, e: ft.FilePickerResultEvent):
         if e.files is not None and len(e.files) == 1:
             self.selected_file.value = e.files[0].path
@@ -216,12 +240,20 @@ class Video(CommandView):
                 "-vf",
                 f"scale={w}:{h}",
             ]
-        elif self.remove_audio.value:
+        elif self.remove_audio.value and self.get_video_codec(self.selected_file.value) in MP4_COPYABLE_CODECS:
             cmds += [
                 "-vcodec",
                 "copy",
                 "-an",
             ]
+        else:
+            # 再エンコード時、奇数解像度のソースはH.264で扱えないため偶数に切り捨てる
+            cmds += [
+                "-vf",
+                "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+            ]
+            if self.remove_audio.value:
+                cmds.append("-an")
 
         cmds.append(self.output_path())
         return cmds
