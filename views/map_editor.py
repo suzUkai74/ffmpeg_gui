@@ -12,6 +12,8 @@ class MapEditor:
         self.img_width = 0
         self.img_height = 0
         self.min_drag_distance = 30
+        self.copied_snack_bar = ft.SnackBar(ft.Text("コピーしました！"), bgcolor=ft.colors.GREEN_ACCENT_200)
+        page.overlay.append(self.copied_snack_bar)
         self.reset()
 
     def reset(self):
@@ -142,13 +144,12 @@ class MapEditor:
         def copy_to_clipboard(e):
             self.page.set_clipboard(text)
             close_dialog()
-            snack_bar = ft.SnackBar(ft.Text("コピーしました！"), bgcolor=ft.colors.GREEN_ACCENT_200)
-            self.page.overlay.append(snack_bar)
-            snack_bar.open = True
+            self.copied_snack_bar.open = True
             self.page.update()
 
         def close_dialog():
             dialog.open = False
+            self.page.overlay.remove(dialog)
             self.page.update()
 
         dialog = ft.AlertDialog(

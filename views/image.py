@@ -29,8 +29,6 @@ class Image(BaseView):
             src = e.files[0].path
             self.editor.load_image(src)
             self.ref.current.controls.clear()
-            self.page.overlay.clear()
-            self.page.overlay.append(self.pick_file)
             self.ref.current.controls.append(
                 ft.ElevatedButton("画像を変更", on_click=lambda _: self.pick_file.pick_files(allow_multiple=False)),
             )

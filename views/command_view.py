@@ -24,6 +24,7 @@ class CommandView(BaseView):
             on_click=lambda _: self.get_directory.get_directory_path(),
         )
         self.output_file_name_input = ft.TextField(label=self.output_name_label, width="200")
+        self.allow_overwrite = ft.Checkbox(label="上書きを許可", value=False)
         self.exec_button = ft.FilledButton(
             "実行",
             on_click=self.click_execute,
@@ -45,6 +46,7 @@ class CommandView(BaseView):
             [
                 self.label_text(self.output_name_label),
                 self.output_file_name_input,
+                self.allow_overwrite,
             ]
         )
 
@@ -71,13 +73,24 @@ class CommandView(BaseView):
 
     def collect_errors(self):
         errors = []
+        directory_ok = False
         if not self.selected_directory.value:
             errors.append("保存先ディレクトリを指定してください。")
         elif not os.path.exists(self.selected_directory.value):
             errors.append("保存先ディレクトリが存在しない。もしくは使用できない文字(/)が含まれています。")
+        else:
+            directory_ok = True
 
+        name_ok = False
         if not self.output_file_name_input.value:
             errors.append(f"{self.output_name_label}を指定してください。")
+        elif "/" in self.output_file_name_input.value:
+            errors.append(f"{self.output_name_label}に使用できない文字(/)が含まれています。")
+        else:
+            name_ok = True
+
+        if directory_ok and name_ok and not self.allow_overwrite.value and os.path.exists(self.output_path()):
+            errors.append("同名のファイルが既に存在します。上書きする場合は「上書きを許可」をチェックしてください。")
 
         return errors
 
@@ -98,13 +111,17 @@ class CommandView(BaseView):
         if self.validate():
             self.result_text.value = "実行中..."
             self.ref.current.update()
-            cp = subprocess.run(self.build_command(), capture_output=True)
-            if cp.returncode == 0:
-                path = self.output_path()
-                self.result_text.value = f"{self.created_message}\n{self.content_size(path)}"
-                self.on_success(path)
+            try:
+                cp = subprocess.run(self.build_command(), capture_output=True)
+            except FileNotFoundError:
+                self.result_text.value = f"コマンド({self.build_command()[0]})が見つかりません。インストールされているか確認してください。"
             else:
-                self.result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode()}"
+                if cp.returncode == 0:
+                    path = self.output_path()
+                    self.result_text.value = f"{self.created_message}\n{self.content_size(path)}"
+                    self.on_success(path)
+                else:
+                    self.result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode()}"
 
         self.exec_button.disabled = False
         self.ref.current.update()

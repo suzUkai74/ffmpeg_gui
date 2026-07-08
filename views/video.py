@@ -1,6 +1,6 @@
 import flet as ft
-import cv2
 import math
+import subprocess
 import unicodedata
 from .command_view import CommandView
 
@@ -94,16 +94,45 @@ class Video(CommandView):
         self.definition_text.value = ""
         self.video_size_text.value = ""
 
+    def get_video_dimensions(self, path):
+        try:
+            cp = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v", "error",
+                    "-select_streams", "v:0",
+                    "-show_entries", "stream=width,height",
+                    "-of", "default=noprint_wrappers=1:nokey=1",
+                    path,
+                ],
+                capture_output=True,
+            )
+        except FileNotFoundError:
+            return None
+
+        values = cp.stdout.decode().split()
+        if cp.returncode != 0 or len(values) < 2:
+            return None
+
+        w, h = int(values[0]), int(values[1])
+        if w <= 0 or h <= 0:
+            return None
+
+        return w, h
+
     def pick_files_result(self, e: ft.FilePickerResultEvent):
         if e.files is not None and len(e.files) == 1:
             self.selected_file.value = e.files[0].path
-            capture = cv2.VideoCapture(self.selected_file.value)
-            w = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-            h = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            gcd = math.gcd(w, h)
-            self.definition_text.value = f"{w}×{h}"
-            self.aspect_text.value = f"{int(w / gcd)}:{int(h / gcd)}"
             self.video_size_text.value = self.content_size(self.selected_file.value)
+            dimensions = self.get_video_dimensions(self.selected_file.value)
+            if dimensions:
+                w, h = dimensions
+                gcd = math.gcd(w, h)
+                self.definition_text.value = f"{w}×{h}"
+                self.aspect_text.value = f"{w // gcd}:{h // gcd}"
+            else:
+                self.definition_text.value = "取得できませんでした"
+                self.aspect_text.value = "取得できませんでした"
         else:
             self.remove_video_info()
 
