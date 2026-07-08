@@ -1,7 +1,14 @@
 import flet as ft
 import os
+import shutil
 import subprocess
 from .base_view import BaseView
+
+# Finder起動時はPATHにHomebrew等が含まれないため、明示的に探索する
+COMMAND_SEARCH_DIRS = [
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+]
 
 class CommandView(BaseView):
     """外部コマンドを実行してファイルを出力するビューの共通処理。
@@ -60,6 +67,18 @@ class CommandView(BaseView):
         self.selected_directory.value = e.path if e.path else "キャンセルされました。"
         self.selected_directory.update()
 
+    def resolve_command(self, name):
+        found = shutil.which(name)
+        if found:
+            return found
+
+        for directory in COMMAND_SEARCH_DIRS:
+            candidate = os.path.join(directory, name)
+            if os.access(candidate, os.X_OK):
+                return candidate
+
+        return name
+
     def output_path(self):
         return f"{self.selected_directory.value}/{self.output_file_name_input.value}.{self.output_extension}"
 
@@ -111,10 +130,12 @@ class CommandView(BaseView):
         if self.validate():
             self.result_text.value = "実行中..."
             self.ref.current.update()
+            cmds = self.build_command()
+            cmds[0] = self.resolve_command(cmds[0])
             try:
-                cp = subprocess.run(self.build_command(), capture_output=True)
+                cp = subprocess.run(cmds, capture_output=True)
             except FileNotFoundError:
-                self.result_text.value = f"コマンド({self.build_command()[0]})が見つかりません。インストールされているか確認してください。"
+                self.result_text.value = f"コマンド({cmds[0]})が見つかりません。インストールされているか確認してください。"
             else:
                 if cp.returncode == 0:
                     path = self.output_path()

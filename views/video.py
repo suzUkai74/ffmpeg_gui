@@ -98,7 +98,7 @@ class Video(CommandView):
         try:
             cp = subprocess.run(
                 [
-                    "ffprobe",
+                    self.resolve_command("ffprobe"),
                     "-v", "error",
                     "-select_streams", "v:0",
                     "-show_entries", "stream=width,height",
@@ -193,6 +193,9 @@ class Video(CommandView):
             elif (not self.scale_height_input.value.isdecimal() and self.scale_height_input.value != "-1") or \
                 (not self.scale_width_input.value.isdecimal() and self.scale_width_input.value != "-1"):
                 errors.append("解像度には数値を設定してください。")
+            elif (self.scale_width_input.value.isdecimal() and int(self.scale_width_input.value) % 2 == 1) or \
+                (self.scale_height_input.value.isdecimal() and int(self.scale_height_input.value) % 2 == 1):
+                errors.append("解像度には偶数を設定してください。(H.264では奇数の解像度を扱えません)")
 
         return errors
 
@@ -206,9 +209,12 @@ class Video(CommandView):
             str(self.crf_value_text.value),
         ]
         if self.scale_width_input.value and self.scale_height_input.value:
+            # -1(アスペクト比維持)は奇数になり得るため、偶数に丸める-2に変換する
+            w = "-2" if self.scale_width_input.value == "-1" else self.scale_width_input.value
+            h = "-2" if self.scale_height_input.value == "-1" else self.scale_height_input.value
             cmds += [
                 "-vf",
-                f"scale={self.scale_width_input.value}:{self.scale_height_input.value}",
+                f"scale={w}:{h}",
             ]
         elif self.remove_audio.value:
             cmds += [
