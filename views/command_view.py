@@ -127,25 +127,28 @@ class CommandView(BaseView):
 
     def click_execute(self, e):
         self.exec_button.disabled = True
-        if self.validate():
-            self.result_text.value = "実行中..."
-            self.ref.current.update()
-            cmds = self.build_command()
-            cmds[0] = self.resolve_command(cmds[0])
-            try:
-                cp = subprocess.run(cmds, capture_output=True)
-            except FileNotFoundError:
-                self.result_text.value = f"コマンド({cmds[0]})が見つかりません。インストールされているか確認してください。"
-            else:
-                if cp.returncode == 0:
-                    path = self.output_path()
-                    self.result_text.value = f"{self.created_message}\n{self.content_size(path)}"
-                    self.on_success(path)
+        try:
+            if self.validate():
+                self.result_text.value = "実行中..."
+                self.ref.current.update()
+                cmds = self.build_command()
+                cmds[0] = self.resolve_command(cmds[0])
+                try:
+                    cp = subprocess.run(cmds, capture_output=True)
+                except FileNotFoundError:
+                    self.result_text.value = f"コマンド({cmds[0]})が見つかりません。インストールされているか確認してください。"
+                except OSError as err:
+                    self.result_text.value = f"エラーが発生しました。\n{err}"
                 else:
-                    self.result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode()}"
-
-        self.exec_button.disabled = False
-        self.ref.current.update()
+                    if cp.returncode == 0:
+                        path = self.output_path()
+                        self.result_text.value = f"{self.created_message}\n{self.content_size(path)}"
+                        self.on_success(path)
+                    else:
+                        self.result_text.value = f"エラーが発生しました。\nreturncode:{cp.returncode}\nerr:{cp.stderr.decode(errors='replace')}"
+        finally:
+            self.exec_button.disabled = False
+            self.ref.current.update()
 
     def build_command(self):
         raise NotImplementedError
